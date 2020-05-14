@@ -1,4 +1,4 @@
-FROM duckietown/dt-ros-commons:daffy-amd64
+FROM duckietown/dt-ros-commons:daffy-new-deal-amd64
 
 MAINTAINER Amaury Camus <camusam@ethz.ch>
 
@@ -15,13 +15,16 @@ RUN pip install PyGeometry
 ARG g2o_lib_dir=lib/src/g2opy
 COPY ${g2o_lib_dir} /code/lib/src/g2opy
 
-RUN cd /code/lib/src/g2opy ; mkdir build ; cd build ; cmake -DPYBIND11_PYTHON_VERSION=2.7 ..  ; make -j3; cd ..; python setup.py install
+RUN cd /code/lib/src/g2opy ; mkdir build ; cd build ; cmake -DPYBIND11_PYTHON_VERSION=2.7 ..  ; make; cd ..; python setup.py install
 
 ARG graph_lib_dir=lib/
 COPY ${graph_lib_dir} /code/lib/
 
 RUN cd /code/lib; python setup.py develop --no-deps
 
+RUN pip install PyContracts==1.8.12
+
+RUN apt-get install -y --no-install-recommends --allow-unauthenticated ros-kinetic-interactive-markers
 
 ## Pose graph optimizer
 ARG ros_nodes=ros/src/pose_graph_builder
@@ -31,6 +34,7 @@ COPY ${ros_nodes} /code/catkin_ws/src/pose_graph_builder
 # Setup the ros-visualization
 COPY ros/src/cslam_visualization /code/catkin_ws/src/cslam_visualization
 COPY ros/src/duckietown-visualization/duckietown_visualization /code/catkin_ws/src/duckietown_visualization
+COPY ros/src/waypoint_markers /code/catkin_ws/src/waypoint_markers
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
     catkin build \
     --workspace ${CATKIN_WS_DIR}/

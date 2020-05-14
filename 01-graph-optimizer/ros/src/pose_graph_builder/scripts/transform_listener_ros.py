@@ -20,7 +20,7 @@ from geometry_msgs.msg import *
 from std_msgs.msg import Header, String, Time
 from visualization_msgs.msg import *
 from nav_msgs.msg import Odometry, Path
-from duckietown_msgs.msg import AprilTagExtended
+from duckietown_msgs.msg import AprilTagDetectionArray
 import inspect
 import yaml
 
@@ -463,66 +463,113 @@ class TransformListener():
         """ ROS callback.
         """
         a = time.time()
-
-        self.num_messages_received += 1
         self.lastbeat = a
         # Get frame IDs of the objects to which the ROS messages are referred.
-        node_id0 = data.header.frame_id
-        if msg_type == "AprilTagExtended":
-            node_id1 = str(data.tag_id)
-            # pose_error = float(data.pose_error) * 10**8 / 37.0
-            # self.pose_errors.append(pose_error)
-            # var = np.var(self.pose_errors)
-            # mean = np.mean(self.pose_errors)
-            # print("pose error : mean %f, var %f" % (mean, var))
+        header_id  = data.header.frame_id.split("/", 1)
+        node_id0 = header_id[0]
+        #print(data)
+        if msg_type == "AprilTagDetectionArray":
+            for detection in data.detections:
+                self.num_messages_received += 1
+                node_id1 = str(detection.tag_id)
+                # pose_error = float(data.pose_error) * 10**8 / 37.0
+                # self.pose_errors.append(pose_error)
+                # var = np.var(self.pose_errors)
+                # mean = np.mean(self.pose_errors)
+                # print("pose error : mean %f, var %f" % (mean, var))
+
+                # Convert the frame IDs to the right format.
+                # print("before filter : message from %s to %s" % (node_id0, node_id1))
+
+                node_id0 = self.filter_name(node_id0)
+                node_id1 = self.filter_name(node_id1)
+                # print("after filter : message from %s to %s" % (node_id0, node_id1))
+                # Ignore messages from one watchtower to another watchtower (i.e.,
+                # odometry messages between watchtowers).
+                is_from_watchtower = False
+                if ("watchtower" in node_id0):
+                    is_from_watchtower = True
+                    if ("watchtower" in node_id1):
+                        return 0
+
+                # Create translation vector.
+                header_time = Time(data.header.stamp)
+                time_stamp = header_time.data.secs + header_time.data.nsecs * 10**(-9)
+
+                if self.first_time_stamp == -1:
+                    self.first_time_stamp = time_stamp
+                    self.resampler.signal_reference_time_stamp(self.first_time_stamp)
+
+                if (node_id1 == node_id0):
+                    # print("got odometry")
+                    # Same ID: odometry message, e.g. the same Duckiebot sending
+                    # odometry information at different instances in time.
+                    self.handle_odometry_message(
+                        node_id1, detection, time_stamp)
+                elif (is_from_watchtower):
+                    # print("got message from watchtower")
+
+                    # Tag detected by a watchtower.
+                    self.handle_watchtower_message(
+                        node_id0, node_id1, detection, time_stamp)
+                else:
+                    # Tag detected by a Duckiebot.
+                    # print("got message from duckiebot")
+                    self.handle_duckiebot_message(
+                        node_id0, node_id1, detection, time_stamp)
+                b = time.time()
+                self.callback_times.append(b-a)
+
         elif msg_type == "TransformStamped":
+            self.num_messages_received += 1
             node_id1 = data.child_frame_id
+            # Convert the frame IDs to the right format.
+            # print("before filter : message from %s to %s" % (node_id0, node_id1))
+
+            node_id0 = self.filter_name(node_id0)
+            node_id1 = self.filter_name(node_id1)
+            # print("after filter : message from %s to %s" % (node_id0, node_id1))
+            # Ignore messages from one watchtower to another watchtower (i.e.,
+            # odometry messages between watchtowers).
+            is_from_watchtower = False
+            if ("watchtower" in node_id0):
+                is_from_watchtower = True
+                if ("watchtower" in node_id1):
+                    print(data)
+                    return 0
+
+            # Create translation vector.
+            header_time = Time(data.header.stamp)
+            time_stamp = header_time.data.secs + header_time.data.nsecs * 10**(-9)
+
+            if self.first_time_stamp == -1:
+                self.first_time_stamp = time_stamp
+                self.resampler.signal_reference_time_stamp(self.first_time_stamp)
+
+            if (node_id1 == node_id0):
+                # print("got odometry")
+                # Same ID: odometry message, e.g. the same Duckiebot sending
+                # odometry information at different instances in time.
+                self.handle_odometry_message(
+                    node_id1, data, time_stamp)
+            elif (is_from_watchtower):
+                # print("got message from watchtower")
+
+                # Tag detected by a watchtower.
+                self.handle_watchtower_message(
+                    node_id0, node_id1, data, time_stamp)
+            else:
+                # Tag detected by a Duckiebot.
+                # print("got message from duckiebot")
+                self.handle_duckiebot_message(
+                    node_id0, node_id1, data, time_stamp)
+            b = time.time()
+            self.callback_times.append(b-a)
+
         else:
             raise Exception(
                 "Transform callback received unsupported msg_type %s" % msg_type)
 
-        # Convert the frame IDs to the right format.
-        # print("before filter : message from %s to %s" % (node_id0, node_id1))
-
-        node_id0 = self.filter_name(node_id0)
-        node_id1 = self.filter_name(node_id1)
-        # print("after filter : message from %s to %s" % (node_id0, node_id1))
-        # Ignore messages from one watchtower to another watchtower (i.e.,
-        # odometry messages between watchtowers).
-        is_from_watchtower = False
-        if ("watchtower" in node_id0):
-            is_from_watchtower = True
-            if ("watchtower" in node_id1):
-                print(data)
-                return 0
-
-        # Create translation vector.
-        header_time = Time(data.header.stamp)
-        time_stamp = header_time.data.secs + header_time.data.nsecs * 10**(-9)
-
-        if self.first_time_stamp == -1:
-            self.first_time_stamp = time_stamp
-            self.resampler.signal_reference_time_stamp(self.first_time_stamp)
-
-        if (node_id1 == node_id0):
-            # print("got odometry")
-            # Same ID: odometry message, e.g. the same Duckiebot sending
-            # odometry information at different instances in time.
-            self.handle_odometry_message(
-                node_id1, data, time_stamp)
-        elif (is_from_watchtower):
-            # print("got message from watchtower")
-
-            # Tag detected by a watchtower.
-            self.handle_watchtower_message(
-                node_id0, node_id1, data, time_stamp)
-        else:
-            # Tag detected by a Duckiebot.
-            # print("got message from duckiebot")
-            self.handle_duckiebot_message(
-                node_id0, node_id1, data, time_stamp)
-        b = time.time()
-        self.callback_times.append(b-a)
 
     def optimization_callback(self, timer_event):
         if (self.num_messages_received >= self.minimum_edge_number_for_optimization):
@@ -629,8 +676,8 @@ class TransformListener():
         # Initialize ID map.
         self.initialize_id_map()
         # Subscribe to topics.
-        rospy.Subscriber("/poses_acquisition/poses", AprilTagExtended,
-                         lambda msg: self.transform_callback(msg, "AprilTagExtended"))
+        rospy.Subscriber("/poses_acquisition/poses", AprilTagDetectionArray,
+                         lambda msg: self.transform_callback(msg, "AprilTagDetectionArray"))
         rospy.Subscriber("/poses_acquisition/odometry", TransformStamped,
                          lambda msg: self.transform_callback(msg, "TransformStamped"))
 

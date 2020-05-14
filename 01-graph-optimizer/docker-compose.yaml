@@ -1,17 +1,16 @@
 version: '3'
 services:
     localization:
-        image: duckietown/cslam-graphoptimizer:daffy-amd64
+        image: duckietown/cslam-graphoptimizer:daffy-hatteland-edit-localization-amd64
         # build:
         #     context: .
         environment:
-            ATMSGS_BAG: /data/processed.bag
-            OUTPUT_DIR: /challenges/challenge-evaluation-output
-            ROS_MASTER_IP: 172.31.168.115
-            ROS_MASTER : duckietown3
-            DUCKIETOWN_WORLD_FORK : AmaurX
-            MAP_NAME : robotarium2
+            PYTHONUNBUFFERED: 1
+            ROS_MASTER_IP: 192.168.1.5
+            ROS_MASTER : alexander
+            DUCKIETOWN_WORLD_FORK : alexushatten
+            MAP_NAME : hatteland_small_loop
         network_mode: host
         volumes:
-            - ~/AIDO3_experiment_data/submission_40/eval0/20190913_161852/data/logs_processed:/data
+            - ~/:/data
 

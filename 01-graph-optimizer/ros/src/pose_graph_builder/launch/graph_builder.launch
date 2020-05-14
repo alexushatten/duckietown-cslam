@@ -5,5 +5,6 @@
     <rosparam file="$(find pose_graph_builder)/params/default_params.yaml" command="load"/>
 
     <node name="listener" pkg="pose_graph_builder" type="transform_listener_ros.py" output="screen" required="true"/>
-    <!-- <node name="marker_publisher" pkg="cslam_visualization" type="publiss_markers.py"/> -->
+    <node name="marker_publisher" pkg="cslam_visualization" type="publish_markers.py"/>
+    <node name="waypoint_marker_publisher" pkg="waypoint_markers" type="waypoint_marker.py"/>
 </launch>
