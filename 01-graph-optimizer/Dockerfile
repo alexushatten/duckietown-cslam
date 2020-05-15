@@ -22,10 +22,9 @@ COPY ${graph_lib_dir} /code/lib/
 
 RUN cd /code/lib; python setup.py develop --no-deps
 
+RUN apt-get install -y --no-install-recommends --allow-unauthenticated ros-kinetic-interactive-markers apt-utils
+
 RUN pip install PyContracts==1.8.12
-
-RUN apt-get install -y --no-install-recommends --allow-unauthenticated ros-kinetic-interactive-markers
-
 ## Pose graph optimizer
 ARG ros_nodes=ros/src/pose_graph_builder
 RUN mkdir -p /code/catkin_ws/src/pose_graph_builder
@@ -35,6 +34,7 @@ COPY ${ros_nodes} /code/catkin_ws/src/pose_graph_builder
 COPY ros/src/cslam_visualization /code/catkin_ws/src/cslam_visualization
 COPY ros/src/duckietown-visualization/duckietown_visualization /code/catkin_ws/src/duckietown_visualization
 COPY ros/src/waypoint_markers /code/catkin_ws/src/waypoint_markers
+COPY ros/src/localization /code/catkin_ws/src/localization
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
     catkin build \
     --workspace ${CATKIN_WS_DIR}/

@@ -1,0 +1,6 @@
+# Fleet of watchtowers
+watchtowers:
+    - watchtower101
+    - watchtower102
+    - watchtower103
+    - watchtower104

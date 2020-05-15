@@ -16,3 +16,10 @@ rejection_sampling_int : 30
 max_number_same_edge : 20
 using_priors : True
 result_folder : "/data"
+
+# Fleet of watchtowers
+watchtowers:
+  - watchtower101
+  - watchtower102
+  - watchtower103
+  - watchtower104

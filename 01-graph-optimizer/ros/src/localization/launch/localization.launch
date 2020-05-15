@@ -1,0 +1,12 @@
+<launch>
+    <group ns="simple_localization">
+      <rosparam file="$(find localization)/config/watchtowers.yaml" command="load"/>
+        <node pkg="localization" type="localization_node.py" name="loc_node" output="screen">
+          <param name="~tag_ttl" type="double" value="2.0"/>
+          <param name="~measuring_offset" type="bool" value="false"/>
+          <param name="~offset_debug_print" type="bool" value="true"/>
+          <param name="~offset_tower_id" type="int" value="-1"/>
+          <param name="~offset_bot_id" type="int" value="26"/>
+        </node>
+    </group>
+</launch>

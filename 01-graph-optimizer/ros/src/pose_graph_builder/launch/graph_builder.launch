@@ -7,4 +7,5 @@
     <node name="listener" pkg="pose_graph_builder" type="transform_listener_ros.py" output="screen" required="true"/>
     <node name="marker_publisher" pkg="cslam_visualization" type="publish_markers.py"/>
     <node name="waypoint_marker_publisher" pkg="waypoint_markers" type="waypoint_marker.py"/>
+    <include file="$(find localization)/launch/localization.launch"/>
 </launch>

@@ -469,6 +469,14 @@ class TransformListener():
         node_id0 = header_id[0]
         #print(data)
         if msg_type == "AprilTagDetectionArray":
+            # Create translation vector.
+            header_time = Time(data.header.stamp)
+            time_stamp = header_time.data.secs + header_time.data.nsecs * 10**(-9)
+
+            if self.first_time_stamp == -1:
+                self.first_time_stamp = time_stamp
+                self.resampler.signal_reference_time_stamp(self.first_time_stamp)
+
             for detection in data.detections:
                 self.num_messages_received += 1
                 node_id1 = str(detection.tag_id)
@@ -483,6 +491,7 @@ class TransformListener():
 
                 node_id0 = self.filter_name(node_id0)
                 node_id1 = self.filter_name(node_id1)
+                print (node_id1)
                 # print("after filter : message from %s to %s" % (node_id0, node_id1))
                 # Ignore messages from one watchtower to another watchtower (i.e.,
                 # odometry messages between watchtowers).
@@ -491,14 +500,6 @@ class TransformListener():
                     is_from_watchtower = True
                     if ("watchtower" in node_id1):
                         return 0
-
-                # Create translation vector.
-                header_time = Time(data.header.stamp)
-                time_stamp = header_time.data.secs + header_time.data.nsecs * 10**(-9)
-
-                if self.first_time_stamp == -1:
-                    self.first_time_stamp = time_stamp
-                    self.resampler.signal_reference_time_stamp(self.first_time_stamp)
 
                 if (node_id1 == node_id0):
                     # print("got odometry")
@@ -662,6 +663,8 @@ class TransformListener():
         using_priors = rospy.get_param("using_priors")
         result_folder = rospy.get_param("result_folder")
         resampling_frequency = rospy.get_param("resampling_frequency", 20.0)
+        watchtowers = rospy.get_param("watchtowers")
+
         bag_is_present = False
         bag_env = "ATMSGS_BAG"
         if not bag_env in os.environ:
@@ -676,8 +679,11 @@ class TransformListener():
         # Initialize ID map.
         self.initialize_id_map()
         # Subscribe to topics.
-        rospy.Subscriber("/poses_acquisition/poses", AprilTagDetectionArray,
-                         lambda msg: self.transform_callback(msg, "AprilTagDetectionArray"))
+        self.detection_msgs_subscribers = []
+        for watchtower in watchtowers:
+            print(watchtower)
+            self.detection_msgs_subscribers.append(rospy.Subscriber("/"+watchtower+"/poses_acquisition/poses", AprilTagDetectionArray,
+                            lambda msg: self.transform_callback(msg, "AprilTagDetectionArray")))
         rospy.Subscriber("/poses_acquisition/odometry", TransformStamped,
                          lambda msg: self.transform_callback(msg, "TransformStamped"))
 
